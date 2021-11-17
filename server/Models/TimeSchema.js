@@ -11,7 +11,16 @@ const TimeSchema = new mongoose.Schema({
     date:{
         type:String,
         required:true
+    },
+    finalTime:{
+        type:String,
+        required:true
+    },
+    status:{
+        type:String,
+        required:true
     }
+
 })
 
 const Time = mongoose.model("Time",TimeSchema);

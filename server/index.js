@@ -1,16 +1,19 @@
-const express = require('express');
+const express                        = require('express');
 const { testController, testRouter } = require('./Controller/testRouter');
 const { timeController, timeRouter } = require('./Controller/timeRouter');
 const { userController, userRouter } = require('./Controller/userRouter');
-const { Connection } = require('./Database/dbsetup');
-const cookieParser = require('cookie-parser');
-const session = require('express-session');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const PORT = process.env.PORT || 4000;
-const app = express();
+const { Connection }                 = require('./Database/dbsetup');
+const cookieParser                   = require('cookie-parser');
+const session                        = require('express-session');
+const bodyParser                     = require('body-parser');
+const cors                           = require('cors');
+const passport                       = require('passport');
+const PORT                           = process.env.PORT || 4000;
+const app                            = express();
 
 require('dotenv').config();
+
+const store = new session.MemoryStore();
 
 class Initialize extends Connection{
     constructor(){
@@ -32,18 +35,22 @@ class Initialize extends Connection{
             methods:['GET','POST','PUT','DELETE'],
             credentials:true
         }))
-        app.use(cookieParser());
         app.use(express.json())
-        app.use(bodyParser.urlencoded({extended:true}))
+        app.use(express.urlencoded({extended:false}))
         app.use(session({
             key:'userId',
             secret:'subscribe',
-            resave:false,
+            resave:true,
             saveUninitialized:false,
             cookie:{
-                expires:60*60*24
-            }
+                maxAge:3600000*24,
+            },
+            store,
         }))
+        app.use(cookieParser('subscribe'));
+        app.use(passport.initialize());    
+        app.use(passport.session());  
+        require('./Middleware/Authentication/passportConfig')(passport)  
     } 
 
     initRoutes () {

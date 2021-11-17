@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken')
 const { $where } = require('../Models/testSchema');
 const testModel = require('../Models/testSchema')
 const testBookModel = require('../Models/testBooks')
-const authPage = require('../Middleware/Authentication/jwtAuth');
+// const authPage = require('../Middleware/Authentication/jwtAuth');
 const testUser = require('../Models/testUserSchema');
 const saltRounds = 10;
 

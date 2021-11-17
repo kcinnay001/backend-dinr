@@ -4,6 +4,9 @@ const teamModel = require('../Models/TeamSchema')
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const e = require('express');
+const passport = require('passport');
+const { Cookie } = require('express-session');
+const cookieParser = require('cookie-parser');
 const saltRounds = 10;
 
 
@@ -77,58 +80,73 @@ class userController {
 
         //regsiter 
         userRouter.post('/register',async(req,res)=>{
+            console.log('hit register post')
             const  username = req.body.username
             const  email    = req.body.email
             const  password = req.body.password
 
-            bcrypt.hash(password,saltRounds,(err,hash)=>{
-                if(err){
-                    console.log(err)
+            userModel.findOne({username:username},async(err,doc)=>{
+                if(err) {
+                    console.log('error')
+                    throw err; 
                 }
-                const newUser = new userModel({username:username,email:email,password:hash})
-                newUser.save((err,val)=>{
-                    if(err){
-                        return err
-                   } else {
-                       res.send({message:'user created'})
-                   }
-                })
-            }) 
-        })
-
-        //Login 
-        userRouter.post('/login',(req,res)=>{
-            const email = req.body.email 
-            const password = req.body.password
-
-            userModel.find({email:email},(err,val)=>{
-                if(err){
-                    console.log(err)
-                    res.send({error:err})
+                if(doc) {
+                    console.log('User Already Exists')
+                    res.send('User Already Exists');
                 }
+                if(!doc) {
+                    const hashedPassword = await bcrypt.hash(req.body.password,10);
 
-                if(val.length > 0){
-                    bcrypt.compare(password,val[0].password,(err,result)=>{
-                        if(result){
-                            const id = val[0]._id
-                            const token = jwt.sign({id}, 'jwtSecret',{
-                                expiresIn:300 // 5 minutes
-                            })
-                            req.session.user = val
-
-                            res.json({auth:true,token,result:val})
-                        } else {
-                            res.json({auth:false,message:'wrong username password combination'})
-                        }
-                    })
-                } else {
-                    res.json({auth:false, message:'no user exists'})
-                }
+                    const newUser = new userModel({username:username,email:email,password:hashedPassword})
+                    await newUser.save();
+                    res.send({login:'user created',auth:true})
+                    console.log('user created')
+                } 
             })
         })
 
+        //Login 
+        userRouter.post('/login',(req,res,next)=>{
+            passport.authenticate('local',(err,user,info)=>{
+                if(err) throw err; 
+                if(!user) res.send(info)
+                else {
+                    req.login(user,err => {
+                        if(err)throw err;
+                        userModel.findOneAndUpdate({email:req.body.email},{auth:true},(err,doc)=>{
+                            if(err){
+                                console.log(err)
+                            } else {
+                                //console.log(doc)
+                            }
+                        });
+                        res.send({data:'Successfully Authenticated',info:req.user})
+                        console.log(req.user)
+                    })
+                }
+            })(req,res,next);
+        })
+
+        userRouter.get('/login',(req,res)=>{
+           res.send(req.user)
+        //    console.log(req.user)
+        })
+ 
+        //Logout
+        userRouter.get('/logout',(req,res)=>{
+            console.log(req.user.id)
+            userModel.findByIdAndUpdate(req.user.id,{auth:false},(err,doc)=>{
+               if(err){
+                   console.log(err)
+               } else {
+                    console.log('updated')
+               }
+           })
+        })
 
     }
+    // cookies.set('testtoken', {maxAge: 0});
+    // cookies.set('testtoken', {expires: });
 }
 
 module.exports = {userController, userRouter}

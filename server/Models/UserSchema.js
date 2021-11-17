@@ -20,7 +20,10 @@ const UserSchema = new mongoose.Schema({
     times:[{
         type:mongoose.Schema.Types.ObjectId,
         ref:'Time'
-    }]
+    }],
+    auth:{
+        type:Boolean
+    }
 })
 
 const User = mongoose.model("User",UserSchema);
